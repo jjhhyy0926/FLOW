@@ -7,8 +7,9 @@ from typing import Any
 import requests
 
 API_BASE = "http://localhost:8000/api"
-_TIMEOUT_CHAT   = 60
-_TIMEOUT_CURATE = 90
+_TIMEOUT_CHAT      = 60
+_TIMEOUT_CURATE    = 90
+_TIMEOUT_RECOMMEND = 60
 
 
 class APIError(Exception):
@@ -43,6 +44,52 @@ def chat(
         raise APIError(
             "❌ FastAPI 서버에 연결할 수 없습니다. "
             "`uvicorn app.main:app --reload`로 서버를 먼저 실행하세요."
+        )
+    except Exception as exc:
+        raise APIError(f"❌ 오류: {exc}") from exc
+
+
+def scan(image_bytes: bytes, filename: str = "image.jpg") -> dict[str, Any]:
+    """
+    POST /api/scan
+    Returns: {"ingredients": list, "total": int, "danger_count": int, "caution_count": int}
+    Raises: APIError
+    """
+    try:
+        resp = requests.post(
+            f"{API_BASE}/scan",
+            files={"file": (filename, image_bytes, "image/jpeg")},
+            timeout=180,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.ConnectionError:
+        raise APIError(
+            "❌ FastAPI 서버에 연결할 수 없습니다. "
+            "`uvicorn app.main:app --reload` 를 먼저 실행해주세요."
+        )
+    except Exception as exc:
+        raise APIError(f"❌ 오류: {exc}") from exc
+
+
+def recommend_chat(message: str, session_id: str = "default") -> dict[str, Any]:
+    """
+    POST /api/recommend/chat
+    Returns: {"answer": str, "session_id": str}
+    Raises: APIError
+    """
+    try:
+        resp = requests.post(
+            f"{API_BASE}/recommend/chat",
+            json={"message": message, "session_id": session_id},
+            timeout=_TIMEOUT_RECOMMEND,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.ConnectionError:
+        raise APIError(
+            "❌ FastAPI 서버에 연결할 수 없습니다. "
+            "`uvicorn app.main:app --reload` 를 먼저 실행해주세요."
         )
     except Exception as exc:
         raise APIError(f"❌ 오류: {exc}") from exc

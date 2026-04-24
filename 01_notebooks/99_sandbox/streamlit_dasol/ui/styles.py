@@ -16,7 +16,17 @@ html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif; }
 [data-testid="stSidebar"]    { display: none !important; }
 [data-testid="stSidebarNav"] { display: none !important; }
 [data-testid="stHeader"]     { display: none !important; }
-.block-container { padding: 0 96px !important; max-width: 100% !important; }
+.block-container {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 96px !important;
+    padding-right: 96px !important;
+    max-width: 100% !important;
+}
+.main .block-container { padding-top: 0 !important; }
+[data-testid="stMainBlockContainer"] { padding-top: 0 !important; }
+section[data-testid="stMain"] > div { padding-top: 0 !important; }
+.d-page { margin-top: -4rem; }
 
 /* ── 상단 네비게이션 ── */
 .d-nav {

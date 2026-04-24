@@ -65,26 +65,11 @@ def call_llm(system: str, user: str) -> str:
 
 # ── 메인 RAG 함수 ─────────────────────────────────────────────
 def ask(question: str, skin_type: str = None, top_k: int = 5) -> dict:
-    """
-    Returns:
-        {
-          "answer" : str,
-          "sources": [{"product_name": str, "content": str}, ...]
-        }
-    """
-    # 1. 검색
     chunks = retrieve(question, top_k=top_k)
-
-    # 2. 프롬프트 구성
     user_prompt = build_prompt(question, chunks, skin_type)
-
-    # 3. LLM 호출
     answer = call_llm(SYSTEM_PROMPT, user_prompt)
-
-    # 4. 출처 정리
     sources = [
         {"product_name": c["product_name"], "content": c["text"][:200] + "..."}
         for c in chunks
     ]
-
     return {"answer": answer, "sources": sources}

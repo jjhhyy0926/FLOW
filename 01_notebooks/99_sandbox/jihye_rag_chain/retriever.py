@@ -1,8 +1,14 @@
 """
 jihye_rag_chain/retriever.py
-수업 자료 참고: 07_advanced_rag/01_retrieval_optimization/
+수업 자료 참고:
+  - 07_advanced_rag/01_retrieval_optimization/02_bm25_dense_comparison.ipynb
+  - 07_advanced_rag/01_retrieval_optimization/03_rrf.ipynb
+  - 07_advanced_rag/01_retrieval_optimization/04_hyde.ipynb
+  - 07_advanced_rag/01_retrieval_optimization/05_cohere_rerank.ipynb
 """
 
+import os
+import cohere
 from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 from langchain_openai import ChatOpenAI
@@ -11,7 +17,11 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda
 
 
-def build_retriever(vs: FAISS, search_type: str = "dense", k: int = 5):
+def build_retriever(vs: FAISS, search_type: str = "hyde", k: int = 20):
+    """
+    search_type: "bm25" | "dense" | "rrf" | "hyde"
+    k: 후보 문서 수 (rerank 전 20개 뽑고 rerank 후 5개로 줄임)
+    """
     if search_type == "dense":
         return _dense_retriever(vs, k)
     elif search_type == "bm25":
@@ -50,7 +60,6 @@ def _rrf_retriever(vs: FAISS, k: int):
         dense_docs = dense.invoke(query)
         bm25_docs  = bm25.invoke(query)
 
-        # RRF 점수 계산 (k=60 기본값)
         rrf_k = 60
         scores = {}
 
@@ -64,13 +73,11 @@ def _rrf_retriever(vs: FAISS, k: int):
             scores[key] = scores.get(key, 0) + 1 / (rrf_k + rank + 1)
             scores[key + "__doc__"] = doc
 
-        # 점수 높은 순으로 정렬
         sorted_keys = sorted(
             [k for k in scores if not k.endswith("__doc__")],
             key=lambda x: scores[x],
             reverse=True
         )
-
         return [scores[key + "__doc__"] for key in sorted_keys[:k]]
 
     return RunnableLambda(rrf_search)
@@ -92,3 +99,29 @@ def _hyde_retriever(vs: FAISS, k: int):
         return dense.invoke(hypothetical_doc)
 
     return RunnableLambda(hyde_search)
+
+
+# ── Cohere Rerank ──────────────────────────────────────────
+def rerank_docs(query: str, docs: list, top_k: int = 5) -> list:
+    """
+    수업 자료: 07_advanced_rag/01_retrieval_optimization/05_cohere_rerank.ipynb
+    BM25 + Dense로 뽑은 후보 문서들을 Cohere rerank-multilingual-v3.0으로 재정렬
+    """
+    if not docs:
+        return docs
+
+    co = cohere.Client(os.environ.get("COHERE_API_KEY"))
+    texts = [doc.page_content for doc in docs]
+
+    response = co.rerank(
+        model="rerank-multilingual-v3.0",
+        query=query,
+        documents=texts
+    )
+
+    reranked = sorted(
+        response.results,
+        key=lambda x: x.relevance_score,
+        reverse=True
+    )
+    return [docs[r.index] for r in reranked[:top_k]]
