@@ -8,20 +8,20 @@ from viz.hero import html as hero_html
 
 _FEATURES = [
     {
-        "icon": "\U0001f50d", "color": "#eff6ff",
-        "title": "성분 분석",
-        "desc": "어려운 INCI 명칭과 영문 성분명을 "
-                "일반 소비자도 이해하기 쉽게 설명해 드립니다. "
-                "EWG 등급과 함께 확인하세요.",
-        "page": "analysis",
-    },
-    {
         "icon": "\U0001f4f7", "color": "#ecfdf5",
         "title": "성분 스캐너",
         "desc": "화장품 뒷면의 라벨을 사진으로 찍어 올리면, "
                 "OCR 기술을 통해 성분을 자동 추출하고 "
                 "위험도를 분석합니다.",
         "page": "scanner",
+    },
+    {
+        "icon": "\U0001f50d", "color": "#eff6ff",
+        "title": "성분 분석",
+        "desc": "어려운 INCI 명칭과 영문 성분명을 "
+                "일반 소비자도 이해하기 쉽게 설명해 드립니다. "
+                "EWG 등급과 함께 확인하세요.",
+        "page": "analysis",
     },
     {
         "icon": "✨", "color": "#faf5ff",

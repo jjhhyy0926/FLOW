@@ -3,6 +3,7 @@ state/session.py
 Streamlit 세션 상태 초기화 및 기본값 관리
 """
 import streamlit as st
+import uuid
 
 _DEFAULTS: dict = {
     # 성분 분석 (Analysis)
@@ -10,13 +11,14 @@ _DEFAULTS: dict = {
     "qa_prefill":   None,
     "skin_type":    None,
     # 성분 스캐너 (Scanner)
-    "scan_done":    False,
-    "scan_image":   None,
+    "scan_done":      False,
+    "scan_image":     None,
+    "scan_results":   None,
+    "scan_upload_key": 0,
     # 제품 추천 (Recommendation)
-    "rec_messages": [],
-    "cur_session":  {},
-    "cur_choices":  [],
-    "cur_is_final": False,
+    "rec_messages":   [],
+    "rec_session_id": None,
+    "rec_prefill":    None,
 }
 
 
@@ -33,12 +35,12 @@ def reset_analysis() -> None:
 
 
 def reset_scanner() -> None:
-    st.session_state.scan_image = None
-    st.session_state.scan_done  = False
+    st.session_state.scan_image    = None
+    st.session_state.scan_done     = False
+    st.session_state.scan_results  = None
+    st.session_state.scan_upload_key += 1
 
 
 def reset_recommendation() -> None:
-    st.session_state.rec_messages = []
-    st.session_state.cur_session  = {}
-    st.session_state.cur_choices  = []
-    st.session_state.cur_is_final = False
+    st.session_state.rec_messages   = []
+    st.session_state.rec_session_id = str(uuid.uuid4())

@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.chat import router as chat_router
 from app.routes.curate import router as curate_router
+from app.routes.recommend import router as recommend_router
+from app.routes.scan import router as scan_router
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,8 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat_router,   prefix="/api")   # /api/chat
-app.include_router(curate_router, prefix="/api")   # /api/curate
+app.include_router(chat_router,      prefix="/api")   # /api/chat
+app.include_router(curate_router,    prefix="/api")   # /api/curate
+app.include_router(recommend_router, prefix="/api")   # /api/recommend/chat
+app.include_router(scan_router,      prefix="/api")   # /api/scan
 
 
 @app.get("/")

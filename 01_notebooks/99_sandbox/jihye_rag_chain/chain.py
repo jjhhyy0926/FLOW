@@ -4,6 +4,7 @@ jihye_rag_chain/chain.py
   - CoT      : 07_advanced_rag/02_generation_optimization/01_rag_cot.ipynb
   - Struct   : 07_advanced_rag/02_generation_optimization/04_rag_structured_output.ipynb
   - Compress : 07_advanced_rag/02_generation_optimization/03_rag_prompt_compression.ipynb
+  - Rerank   : 07_advanced_rag/01_retrieval_optimization/05_cohere_rerank.ipynb
 """
 
 import os
@@ -15,11 +16,19 @@ from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-from retriever import build_retriever
+from retriever import build_retriever, rerank_docs
 
 load_dotenv()
 
-FAISS_PATH = r"C:\lecture\project\FLOW\00_data\02_processed\faiss_index_preset1"
+# FAISS_PATH = r"C:\lecture\project\FLOW\00_data\02_processed\faiss_index_preset1"
+FAISS_PATH = os.path.join(
+    os.path.dirname(__file__),  # jihye_rag_chain/
+    "..",                        # 99_sandbox/
+    "..",                        # 01_notebooks/
+    "..",                        # FLOW/
+    "00_data", "02_processed", "faiss_index_preset1"
+)
+FAISS_PATH = os.path.abspath(FAISS_PATH)
 
 
 # ── Structured Output 스키마 1: 성분명 추출 ────────────────
@@ -48,10 +57,6 @@ def load_vectorstore(faiss_path: str = FAISS_PATH):
 
 # ── 성분명 추출 ────────────────────────────────────────────
 def extract_ingredients(query: str) -> list[str]:
-    """
-    GPT로 질문에서 화장품 성분명만 정확하게 추출
-    수업 자료: 04_rag_structured_output.ipynb 패턴 활용
-    """
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(QueryIntent)
     prompt = ChatPromptTemplate.from_messages([
         ("system", "사용자 질문에서 화장품 성분명만 추출하세요. 성분명이 없으면 빈 리스트를 반환하세요."),
@@ -84,10 +89,6 @@ SYSTEM_PROMPT = """
 
 # ── Prompt Compression ─────────────────────────────────────
 def compress_docs(docs: list, query: str) -> str:
-    """
-    검색된 문서를 300자 이내로 압축해서 핵심만 추출
-    수업 자료: 03_rag_prompt_compression.ipynb
-    """
     llm_compress = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     prompt = PromptTemplate.from_template("""
 아래 문서를 300자 이내로 압축하세요. 성분명, EWG 등급, 출처, 효능만 남기세요.
@@ -105,7 +106,7 @@ def compress_docs(docs: list, query: str) -> str:
 # ── RAG 체인 구성 ──────────────────────────────────────────
 def build_chain(search_type: str = "hyde"):
     vs = load_vectorstore()
-    retriever = build_retriever(vs, search_type=search_type)
+    retriever = build_retriever(vs, search_type=search_type, k=20)
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
@@ -141,9 +142,29 @@ def get_answer(
         history_text = "\n".join(f"{m['role']}: {m['content']}" for m in recent)
         context_query = f"[이전 대화]\n{history_text}\n\n[현재 질문]\n{query}"
 
-    raw_docs = retriever.invoke(context_query)
+    # 1단계: 후보 20개 검색
+    raw_docs_candidates = retriever.invoke(context_query)
 
-    # Structured Output으로 답변 생성
+    # 2단계: GPT로 성분명 추출
+    ingredient_names = extract_ingredients(query)
+
+    # 3단계: 성분명으로 필터링 (20개 후보에서)
+    if ingredient_names:
+        filtered_docs = [
+            doc for doc in raw_docs_candidates
+            if any(name in doc.page_content for name in ingredient_names)
+        ]
+        # 4단계: 필터된 결과를 Cohere Rerank로 재정렬
+        if filtered_docs:
+            final_docs = rerank_docs(context_query, filtered_docs, top_k=3)
+        else:
+            # 필터 결과 없으면 전체 후보 rerank
+            final_docs = rerank_docs(context_query, raw_docs_candidates, top_k=3)
+    else:
+        # 성분명 없는 질문은 전체 후보 rerank
+        final_docs = rerank_docs(context_query, raw_docs_candidates, top_k=3)
+
+    # 5단계: GPT 답변 생성
     analysis: IngredientAnalysis = chain.invoke(context_query)
 
     # 답변 포맷팅
@@ -152,19 +173,6 @@ def get_answer(
 **적합 피부 타입**: {', '.join(analysis.skin_types) if analysis.skin_types else '정보 없음'}
 
 {analysis.summary}"""
-
-    # GPT로 성분명 추출해서 sources 필터링
-    ingredient_names = extract_ingredients(query)
-
-    if ingredient_names:
-        filtered_docs = [
-            doc for doc in raw_docs
-            if any(name in doc.page_content for name in ingredient_names)
-        ]
-        final_docs = filtered_docs[:3] if filtered_docs else raw_docs[:3]
-    else:
-        # 성분명이 없는 질문 (예: "EWG 1등급 성분 추천해줘")은 필터 없이 원본 사용
-        final_docs = raw_docs[:3]
 
     sources = [
         {
