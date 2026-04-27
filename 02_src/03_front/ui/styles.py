@@ -92,38 +92,131 @@ section[data-testid="stMain"] > div { padding-top: 0 !important; }
 
 /* ── 히어로 비주얼 ── */
 .d-hero-visual {
-    position:relative; height:380px;
-    display:flex; align-items:center; justify-content:center;
+    position: relative;
+    height: 380px;
+    display: grid;
+    place-items: center;
 }
+
+/* 클러스터 전체를 감싸는 부드러운 글로우 (메인 아이콘만이 아니라 그룹 전체를 받쳐줌) */
 .d-blob {
-    position:absolute; width:340px; height:340px;
-    background:radial-gradient(circle,#ecfdf5 0%,#f0fdf4 55%,transparent 100%);
-    border-radius:50%; filter:blur(50px); opacity:0.9;
+    position: absolute;
+    width: 420px; height: 420px;
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(5,150,105,0.18) 0%,
+        rgba(5,150,105,0.10) 38%,
+        rgba(236,253,245,0.6) 65%,
+        transparent 80%
+    );
+    border-radius: 50%;
+    filter: blur(20px);
+    z-index: 0;
 }
+
+/* 동심원 — 위성 아이콘들을 시각적으로 묶어주는 궤도 */
+.d-ring {
+    position: absolute;
+    border-radius: 50%;
+    z-index: 1;
+    pointer-events: none;
+}
+.d-ring--outer {
+    width: 360px; height: 360px;
+    border: 1px dashed rgba(5,150,105,0.26);
+    animation: orbit-ring 28s linear infinite;
+}
+.d-ring--inner {
+    width: 240px; height: 240px;
+    border: 1px solid rgba(5,150,105,0.12);
+    animation: orbit-ring 22s linear infinite reverse;
+}
+
+/* 빈 공간을 채워주는 작은 점들 */
+.d-dot {
+    position: absolute;
+    border-radius: 50%;
+    background: #059669;
+    z-index: 1;
+}
+.d-dot--1 { width:6px; height:6px; top:24%;  left:30%; opacity:.35; }
+.d-dot--2 { width:4px; height:4px; bottom:24%; left:28%; opacity:.45; }
+.d-dot--3 { width:5px; height:5px; top:30%;  right:24%; opacity:.30; }
+
+/* 메인 타일 */
 .d-icon-main {
-    position:absolute; width:128px; height:128px;
-    background:#059669; border-radius:30px;
-    display:flex; align-items:center; justify-content:center; font-size:3.2rem;
-    box-shadow:0 24px 48px rgba(5,150,105,0.28);
-    animation:float-main 6s ease-in-out infinite;
+    position: relative;
+    z-index: 3;
+    width: 128px; height: 128px;
+    background: linear-gradient(160deg, #10b981 0%, #047857 100%);
+    border-radius: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.2rem;
+    box-shadow:
+        0 24px 48px rgba(5,150,105,0.32),
+        inset 0 1px 0 rgba(255,255,255,0.18);
+    animation: float-main 6s ease-in-out infinite;
 }
+
+/* 위성 아이콘 — 메인 타일 중심 기준으로 적당히 떨어진 거리에 배치 */
 .d-icon-spark {
-    position:absolute; top:72px; left:48px;
-    width:64px; height:64px; background:#047857; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; font-size:1.5rem;
-    box-shadow:0 10px 24px rgba(4,120,87,0.3);
-    animation:float-spark 5s ease-in-out infinite;
+    position: absolute;
+    z-index: 2;
+    top: calc(50% - 124px);
+    left: calc(50% - 138px);
+    width: 56px; height: 56px;
+    background: #047857;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    color: #fbbf24;
+    box-shadow: 0 10px 24px rgba(4,120,87,0.35);
+    animation: float-spark 5s ease-in-out infinite;
 }
 .d-icon-search {
-    position:absolute; top:54px; right:40px;
-    width:76px; height:76px; background:white; border-radius:20px;
-    display:flex; align-items:center; justify-content:center; font-size:1.9rem;
-    box-shadow:0 10px 28px rgba(0,0,0,0.10); border:1px solid #f3f4f6;
-    animation:float-search 5.5s ease-in-out infinite;
+    position: absolute;
+    z-index: 2;
+    top: calc(50% + 56px);
+    left: calc(50% + 84px);
+    width: 60px; height: 60px;
+    background: white;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem;
+    box-shadow:
+        0 12px 26px rgba(0,0,0,0.10),
+        0 0 0 1px rgba(15,23,42,0.04);
+    animation: float-search 5.5s ease-in-out infinite;
 }
-@keyframes float-main  { 0%,100%{transform:translateY(0) rotate(0deg);}  50%{transform:translateY(-18px) rotate(4deg);} }
-@keyframes float-spark  { 0%,100%{transform:translateY(0) translateX(0);} 50%{transform:translateY(14px) translateX(8px);} }
-@keyframes float-search { 0%,100%{transform:translateY(0);}               50%{transform:translateY(-12px) translateX(-5px);} }
+
+/* '안전' 칩 — 컨텍스트와 시각적 무게감을 채워줌 */
+.d-chip {
+    position: absolute;
+    z-index: 3;
+    top: calc(50% - 104px);
+    left: calc(50% + 92px);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #047857;
+    background: white;
+    border-radius: 999px;
+    box-shadow:
+        0 8px 18px rgba(15,23,42,0.10),
+        0 0 0 1px rgba(5,150,105,0.18);
+    animation: float-spark 6.5s ease-in-out infinite;
+}
+.d-chip__dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.20);
+}
+
+@keyframes float-main   { 0%,100%{transform:translateY(0) rotate(0deg);}  50%{transform:translateY(-14px) rotate(3deg);} }
+@keyframes float-spark  { 0%,100%{transform:translate(0,0);}              50%{transform:translate(-4px,-8px);} }
+@keyframes float-search { 0%,100%{transform:translate(0,0);}              50%{transform:translate(6px,-8px);} }
+@keyframes orbit-ring   { to { transform: rotate(360deg); } }
 
 /* ── 기능 카드 ── */
 .d-section { padding:64px 0 0; }
